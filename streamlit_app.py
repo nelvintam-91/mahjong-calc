@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 
+# --- MAHJONG CALC ---
 # --- PAGE FUNCTIONS ---
 def page_home():
     st.title("🀄 Mahjong Calculator")
