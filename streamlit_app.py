@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 
-# --- MAHJONG CALC ---
 # --- PAGE FUNCTIONS ---
 def page_home():
     st.title("🀄 Mahjong Calculator")
@@ -51,36 +50,57 @@ def page_home():
                         index=None,
                         placeholder='Points'
                         )    
-
-
     
+        #Submit and delete last game buttons
+        colA, colB = st.columns([3,1])
+        with colB:
+            OK_confirm_game_button = st.form_submit_button("OK")
 
-        OK_confirm_game_button = st.form_submit_button("OK")
+        with colA:
+            DEL_last_game_button = st.form_submit_button("Delete Last Game")
+
         if OK_confirm_game_button:
-            if win_type == '自摸':
+            if winner == loser:
+                text_filler = 'Winner cannot have same name as Loser'
+                st.error(f':red[{text_filler}]')
+            elif win_type == None:
+                text_filler = 'Win Type cannot be empty'
+                st.error(f':red[{text_filler}]')
+            elif points == None:
+                text_filler = 'Points cannot be empty'
+                st.error(f':red[{text_filler}]')
+            elif loser == None and win_type != '自摸':
+                text_filler = 'Loser cannot be nameless'
+                st.error(f':red[{text_filler}]')
+            elif win_type == '自摸':
                 loser1 = [x for x in st.session_state['selected_players'] if x != winner][0]
                 loser2 = [x for x in st.session_state['selected_players'] if x != winner][1]
                 loser3 = [x for x in st.session_state['selected_players'] if x != winner][2]
+                game_result = {'Winner': winner, 'Loser1': loser1, 'Loser2': loser2, 'Loser3': loser3, 'WinType': win_type, 'Points': points} 
+                st.session_state['game_master'].append(game_result)
             else:
                 loser1 = loser
                 loser2 = None
-                loser3 = None
-        
-            game_result = {'Winner': winner, 'Loser1': loser1, 'Loser2': loser2, 'Loser3': loser3, 'WinType': win_type, 'Points': points} 
+                loser3 = None        
+                game_result = {'Winner': winner, 'Loser1': loser1, 'Loser2': loser2, 'Loser3': loser3, 'WinType': win_type, 'Points': points} 
+                st.session_state['game_master'].append(game_result)
 
-            st.session_state['game_master'].append(game_result)
+        if DEL_last_game_button:
+            mahjong_remove_last_line()
 
+
+    #Calculation of winnings/losings
     mahjong_calculator()
     total_amount_df = pd.DataFrame(st.session_state['calculator_master'])
     if len(st.session_state['calculator_master']) > 0:
-        total_amount = total_amount_df.groupby('Player').sum()
-        st.write(total_amount)
+        total_amount = total_amount_df.groupby('Player').sum()        
+        st.dataframe(total_amount.style.format({'Amount':'{:.2f}'}))
 
     game_master_df = pd.DataFrame(st.session_state['game_master'])
     st.write(game_master_df)
 
     with st.form("reset_form"):
-        RESET_game_button = st.form_submit_button("RESET SESSION")
+        RESET_game_button = st.form_submit_button("DOUBLE CLICK TO RESET")
         if RESET_game_button:
             st.session_state['game_master'] = []
             st.session_state['calculator_master'] = []
@@ -108,11 +128,11 @@ def page_player_settings():
         if ADD_button_player_name:
             new_player_name_cleansed = new_player_name.strip().upper()
             if 'base_player_list' not in st.session_state:
-                st.session_state['base_player_list'] = ['NEL','WAI','CAM','BOS','LIL','LIS','AMA']
+                st.session_state['base_player_list'] = ['NEL','WAI','CAM','BOS','LIL','LIS','AMA','JEN']
             st.session_state['base_player_list'].append(new_player_name_cleansed)
 
         if RESET_button_player_name:
-            st.session_state['base_player_list'] = ['NEL','WAI','CAM','BOS','LIL','LIS','AMA']
+            st.session_state['base_player_list'] = ['NEL','WAI','CAM','BOS','LIL','LIS','AMA','JEN']
 
     st.session_state['base_player_list_dedup'] = list(set(st.session_state['base_player_list']))
     st.session_state['base_player_list_dedup'].sort()
@@ -175,6 +195,8 @@ def mahjong_calculator():
             st.session_state['calculator_master'].append(winner_x_entry)
             st.session_state['calculator_master'].append(loser1_x_entry)
 
+def mahjong_remove_last_line():
+    del st.session_state['game_master'][-1]
 
 
 # --- MAIN APP ---
@@ -200,7 +222,7 @@ def main():
 if __name__ == "__main__":
     #Set up session state tables
     if 'base_player_list_dedup' not in st.session_state:
-        st.session_state['base_player_list_dedup'] = ['NEL','WAI','CAM','BOS','LIL','LIS','AMA']
+        st.session_state['base_player_list_dedup'] = ['NEL','WAI','CAM','BOS','LIL','LIS','AMA','JEN']
     st.session_state['base_player_list_dedup'].sort()
     if 'base_player_list' not in st.session_state:
         st.session_state['base_player_list'] = st.session_state['base_player_list_dedup'] 
@@ -221,4 +243,4 @@ if __name__ == "__main__":
     }
     default_scoring_df = pd.DataFrame(default_scoring)
 
-    main() 
+    main()
