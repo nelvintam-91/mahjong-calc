@@ -270,7 +270,7 @@ def mahjong_remove_last_line():
     try:
         cursor = conn.cursor()
         cursor.execute(
-            f"DELETE {TABLE_NAME} WHERE ID = (SELECT MAX(ID) FROM {TABLE_NAME})"
+            f"DELETE FROM {TABLE_NAME} WHERE ID = (SELECT MAX(ID) FROM {TABLE_NAME})"
         )
         conn.commit()
     except Exception as e:
@@ -293,7 +293,7 @@ def main():
         page_point_scoring()
 
     st.sidebar.markdown("---")
-    st.sidebar.caption("v1.0.2 | © Nelvin Tam ")
+    st.sidebar.caption("v1.0.3 | © Nelvin Tam ")
 
     
 
