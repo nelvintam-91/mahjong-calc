@@ -20,44 +20,44 @@ def page_home():
             st.error(f':red[{text_filler}]')
 
     st.write("Add Game Results")
-    with st.form("game_result_form"):
+    with st.form("game_result_form", clear_on_submit=True):
         col1, col2, col3, col4 = st.columns([1,1,1,1])
 
         with col1:
             winner = st.selectbox("Winner",
                         st.session_state['selected_players'],
                         index=None,
-                        placeholder='Winner'
+                        placeholder='(blank)'
                         )
 
         with col2:
             loser = st.selectbox("Loser",
                         st.session_state['selected_players'],
                         index=None,
-                        placeholder='Loser'
+                        placeholder='(blank) if 自摸'
                         ) 
 
         with col3:
             win_type = st.selectbox("Type",
                         ['出銃','自摸','包自摸'],
                         index=None,
-                        placeholder='Type'
+                        placeholder='(blank)'
                         )   
 
         with col4:
             points = st.selectbox("Points",
                         [3,4,5,6,7,8,9,10],
                         index=None,
-                        placeholder='Points'
+                        placeholder='(blank)'
                         )    
     
         #Submit and delete last game buttons
         colA, colB = st.columns([3,1])
         with colB:
-            OK_confirm_game_button = st.form_submit_button("OK")
+            OK_confirm_game_button = st.form_submit_button("➕ OK")
 
         with colA:
-            DEL_last_game_button = st.form_submit_button("Delete Last Game")
+            DEL_last_game_button = st.form_submit_button("↩️ Undo Last Game")
 
         if OK_confirm_game_button:
             if winner == loser:
@@ -78,15 +78,21 @@ def page_home():
                 loser3 = [x for x in st.session_state['selected_players'] if x != winner][2]
                 game_result = {'Winner': winner, 'Loser1': loser1, 'Loser2': loser2, 'Loser3': loser3, 'WinType': win_type, 'Points': points} 
                 st.session_state['game_master'].append(game_result)
+                st.success(f'Game added. Congrats {winner}!')
             else:
                 loser1 = loser
                 loser2 = None
                 loser3 = None        
                 game_result = {'Winner': winner, 'Loser1': loser1, 'Loser2': loser2, 'Loser3': loser3, 'WinType': win_type, 'Points': points} 
                 st.session_state['game_master'].append(game_result)
+                st.success(f'Game added. Congrats {winner}!')
 
         if DEL_last_game_button:
-            mahjong_remove_last_line()
+            if len(st.session_state['game_master']) > 0:
+                mahjong_remove_last_line()
+                st.success('Deleted successfully.')
+            else:
+                st.success('No lines to delete.')
 
 
     #Calculation of winnings/losings
@@ -107,7 +113,7 @@ def page_home():
             st.success('Game results have been reset.')
 
 def page_player_settings():
-    st.title("😁 Player Settings")
+    st.title("🚻 Player Settings")
 
     st.write("Add/Remove Players")
     player_name_label = "Insert Player Name"
@@ -199,23 +205,23 @@ def mahjong_remove_last_line():
     del st.session_state['game_master'][-1]
 
 
+
 # --- MAIN APP ---
 def main():
-    st.sidebar.title("Nav")
     selection = st.sidebar.radio(
-        "Go to",
-        ["Home","Players","Points"]
+        "Mahjong Calculator",
+        ["🀄","🚻","🎲"]
     )
 
-    if selection == "Home":
+    if selection == "🀄":
         page_home()
-    elif selection == "Players":
+    elif selection == "🚻":
         page_player_settings()
-    elif selection == "Points":
+    elif selection == "🎲":
         page_point_scoring()
 
     st.sidebar.markdown("---")
-    st.sidebar.caption("v1.0.0 | Nelvin Tam")
+    st.sidebar.caption("v1.0.1 | © Nelvin Tam ")
 
     
 
