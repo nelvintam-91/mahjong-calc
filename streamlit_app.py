@@ -1,5 +1,73 @@
 import streamlit as st
 import pandas as pd
+import sqlite3
+
+# --- DATABASE CONNECTION ---
+DB_NAME = 'mahjong_app.db'
+TABLE_NAME = 'game_log'
+
+@st.cache_resource
+def get_connection():
+    conn = sqlite3.connect(DB_NAME, check_same_thread=False)
+    conn.execute(f'''
+        CREATE TABLE IF NOT EXISTS {TABLE_NAME} (
+        ID INTEGER PRIMARY KEY AUTOINCREMENT,
+        Winner TEXT,
+        Loser1 TEXT,
+        Loser2 TEXT,
+        Loser3 TEXT,
+        WinType TEXT,
+        Points INTEGER
+        )
+    ''')
+    return conn
+
+conn = get_connection()
+
+# --- DATABASE INTERACTIONS ---
+def add_row(conn, winner, loser1, loser2, loser3, win_type, points):
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            f"INSERT INTO {TABLE_NAME} (Winner, Loser1, Loser2, Loser3, WinType, Points) VALUES (?, ?, ?, ?, ?, ?)", 
+            (winner, loser1, loser2, loser3, win_type, points)
+        )
+        conn.commit()
+        st.success(f'Game added successfully. Congrats {winner}!')
+    except Exception as e:
+        st.error(f"Error adding row: {e}")
+
+def get_data(conn):
+    try:
+        query = f"SELECT * FROM {TABLE_NAME} ORDER BY ID"
+        df = pd.read_sql(query, conn)
+        return df
+    except Exception as e:
+        st.error(f"Error retrieving data: {e}")
+        return pd.DataFrame()
+    
+def del_data(conn):
+    cursor = conn.cursor()
+    cursor.execute(f"DROP TABLE IF EXISTS {TABLE_NAME}")
+    conn.commit()
+    reset_data(conn)
+
+def reset_data(conn):
+    cursor = conn.cursor()
+    cursor.execute(f'''
+        CREATE TABLE IF NOT EXISTS {TABLE_NAME} (
+        ID INTEGER PRIMARY KEY AUTOINCREMENT,
+        Winner TEXT,
+        Loser1 TEXT,
+        Loser2 TEXT,
+        Loser3 TEXT,
+        WinType TEXT,
+        Points INTEGER
+        )
+    ''')
+    conn.commit()    
+
+    
 
 # --- PAGE FUNCTIONS ---
 def page_home():
@@ -76,24 +144,19 @@ def page_home():
                 loser1 = [x for x in st.session_state['selected_players'] if x != winner][0]
                 loser2 = [x for x in st.session_state['selected_players'] if x != winner][1]
                 loser3 = [x for x in st.session_state['selected_players'] if x != winner][2]
-                game_result = {'Winner': winner, 'Loser1': loser1, 'Loser2': loser2, 'Loser3': loser3, 'WinType': win_type, 'Points': points} 
-                st.session_state['game_master'].append(game_result)
-                st.success(f'Game added. Congrats {winner}!')
+                add_row(conn, winner, loser1, loser2, loser3, win_type, points)
             else:
                 loser1 = loser
                 loser2 = None
                 loser3 = None        
-                game_result = {'Winner': winner, 'Loser1': loser1, 'Loser2': loser2, 'Loser3': loser3, 'WinType': win_type, 'Points': points} 
-                st.session_state['game_master'].append(game_result)
-                st.success(f'Game added. Congrats {winner}!')
+                add_row(conn, winner, loser1, loser2, loser3, win_type, points)
 
         if DEL_last_game_button:
-            if len(st.session_state['game_master']) > 0:
+            if len(get_data(conn)) > 0:
                 mahjong_remove_last_line()
                 st.success('Deleted successfully.')
             else:
                 st.success('No lines to delete.')
-
 
     #Calculation of winnings/losings
     mahjong_calculator()
@@ -102,15 +165,16 @@ def page_home():
         total_amount = total_amount_df.groupby('Player').sum()        
         st.dataframe(total_amount.style.format({'Amount':'{:.2f}'}))
 
-    game_master_df = pd.DataFrame(st.session_state['game_master'])
-    st.write(game_master_df)
+        st.write(get_data(conn))
 
     with st.form("reset_form"):
         RESET_game_button = st.form_submit_button("DOUBLE CLICK TO RESET")
-        if RESET_game_button:
-            st.session_state['game_master'] = []
-            st.session_state['calculator_master'] = []
-            st.success('Game results have been reset.')
+        try:
+            if RESET_game_button:
+                del_data(conn)
+                st.success('Game results have been reset.')
+        except:
+            pass
 
 def page_player_settings():
     st.title("🚻 Player Settings")
@@ -173,6 +237,7 @@ def page_point_scoring():
 
 def mahjong_calculator():
     st.session_state['calculator_master'] = []
+    st.session_state['game_master'] = get_data(conn).to_dict(orient='records')
     for x in range(len(st.session_state['game_master'])):
         winner_x = st.session_state['game_master'][x]['Winner']
         loser1_x = st.session_state['game_master'][x]['Loser1']
@@ -202,7 +267,14 @@ def mahjong_calculator():
             st.session_state['calculator_master'].append(loser1_x_entry)
 
 def mahjong_remove_last_line():
-    del st.session_state['game_master'][-1]
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            f"DELETE {TABLE_NAME} WHERE ID = (SELECT MAX(ID) FROM {TABLE_NAME})"
+        )
+        conn.commit()
+    except Exception as e:
+        pass
 
 
 
@@ -221,7 +293,7 @@ def main():
         page_point_scoring()
 
     st.sidebar.markdown("---")
-    st.sidebar.caption("v1.0.1 | © Nelvin Tam ")
+    st.sidebar.caption("v1.0.2 | © Nelvin Tam ")
 
     
 
